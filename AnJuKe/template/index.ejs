@@ -21,10 +21,10 @@
         <div class="navbar navbar-default">
           <form class="navbar-form navbar-left" action="index.html" method="post">
             <div class="form-group" style="margin-right:20px;">
-              <button type="button" class="btn btn-default glyphicon glyphicon-plus">新建</button>
+              <button id="btn_add"  type="button" class="btn btn-default glyphicon glyphicon-plus">新建</button>
             </div>
             <div class="form-group" style="margin-right:20px;">
-              <button type="button" class="btn btn-default glyphicon glyphicon-remove">删除</button>
+              <button id="btn_del" type="button" class="btn btn-default glyphicon glyphicon-remove">删除</button>
             </div>
             <div class="form-group">
               <input type="search" class="form-control">
@@ -71,7 +71,7 @@
             <tr>
               <td>
                 <label>
-                  <input type="checkbox">
+                  <input type="checkbox" name="ID_check" value="<%=json.ID%>">
                   <%=json.ID%>
                 </label>
               </td>
@@ -80,7 +80,7 @@
               <td><%=json.tel%></td>
               <td>
                 <a href="javascript:;">编辑</a>
-                <a href="javascript:;">删除</a>
+                <a href="/admin/house/delete?id=<%=json.ID%>" onclick="return confirm('你确定删除这个房屋信息吗？删除不可撤销')">删除</a>
               </td>
             </tr>
             <% }); %>
@@ -90,63 +90,113 @@
     </div>
 
     <div class="shadow"></div>
-    <div class="panel panel-default add_modify_dialog">
+    <div id="dialog" class="panel panel-default add_modify_dialog">
       <div class="panel-heading">
         <h3 class="panel-title">
           添加/修改
-          <a href="#" class="pull-right glyphicon glyphicon-remove"></a>
+          <a id="btn_close" href="#" class="pull-right glyphicon glyphicon-remove"></a>
         </h3>
       </div>
       <div class="panel-body" style="overflow:auto; height:460px;">
-        <form class="form-horizontal" method="post">
-          <div class="form-group">
+        <form class="form-horizontal" method="post" action="/admin/house" enctype="multipart/form-data">
+          <div id="form_contrainer">
+
+          </div>
+
+          <!--<div class="form-group">
             <label for="id1" class="col-sm-2 control-label">数据1</label>
             <div class="col-sm-10">
               <input type="text" class="form-control" id="id1" placeholder="请输入数据...">
             </div>
           </div>
-
-          <div class="form-group">
-            <label for="id2" class="col-sm-2 control-label">数据2</label>
-            <div class="col-sm-10">
-              <input type="text" class="form-control" id="id2" placeholder="请输入数据...">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="id3" class="col-sm-2 control-label">数据3</label>
-            <div class="col-sm-10">
-              <textarea class="form-control" rows="10" id="id3" placeholder="请输入数据..."></textarea>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="id4" class="col-sm-2 control-label">选择</label>
-            <div class="col-sm-10">
-              <select class="form-control" id="id4">
-                <option value="1">数据1</option>
-                <option value="2">数据2</option>
-                <option value="3">数据3</option>
-                <option value="4">数据4</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="id4" class="col-sm-2 control-label">文件</label>
-            <div class="col-sm-10">
-              <input type="file" class="form-control">
-            </div>
-          </div>
+        -->
 
           <div class="form-group">
             <div class="col-sm-10 col-sm-offset-2">
               <button type="submit" class="btn btn-primary">提交</button>
-              <button type="button" class="btn btn-danger">取消</button>
+              <button id="btn_cancel" type="button" class="btn btn-danger">取消</button>
             </div>
           </div>
         </form>
       </div>
     </div>
   </body>
+  <script>
+  // open or close window
+    $("#btn_add").click(function(){
+      console.log("add");
+      $('#shadow').show();
+      $('#dialog').show();
+    });
+
+    $("#btn_close,#btn_cancel").click(function(){
+      console.log("delete");
+      $('#shadow').hide();
+      $('#dialog').hide();
+    });
+
+    //create form
+    const form_inputs=[
+      {type: 'text', name: 'title', title: '标题'},
+      {type: 'text', name: 'sub_title', title: '副标题'},
+      {type: 'text', name: 'position_main', title: '主位置'},
+      {type: 'text', name: 'position_second', title: '副位置'},
+      {type: 'number', name: 'ave_price', title: '均价'},
+      {type: 'number', name: 'area_min', title: '最小面积'},
+      {type: 'number', name: 'area_max', title: '最大面积'},
+      {type: 'tel', name: 'tel', title: '电话'},
+      {type: 'date', name: 'sale_time', title: '开盘日期'},
+      {type: 'date', name: 'submit_time', title: '交房日期'},
+      {type: 'text', name: 'building_type', title: '建筑类型'},
+      {type: 'file', name: 'main_img', title: '大图'},
+      {type: 'file', name: 'img', title: '小图(多选)', multiple: true},
+      {type: 'text', name: 'property_types', title: '户型'},
+      {type: 'file', name: 'property_img', title: '户型图'},
+    ];
+
+    $('#form_contrainer').html("");
+    for(let i=0;i<form_inputs.length;i++){
+      var type = form_inputs[i].type;
+      var name = form_inputs[i].name;
+      var title = form_inputs[i].title;
+      var multiple = form_inputs[i].multiple;
+      var template = `
+      <div class="form-group">
+        <label for="id_addHouse_${i}" class="col-sm-2 control-label">${title}</label>
+        <div class="col-sm-10">
+          <input type="${type}" ${multiple?'multiple':''} name="${name}" class="form-control" id="id_addHouse_${i}" placeholder="请输入${title}">
+        </div>
+      </div>`;
+      $('#form_contrainer').append(template);
+    }
+
+    //batch delete files
+    $("#btn_del").click(function(){
+      let arr=[];
+      let aCheck=Array.from(document.getElementsByName('ID_check'));
+      aCheck.forEach(ch=>{
+        if(ch.checked){
+          arr.push(ch.value);
+        }
+      });
+
+      if(arr.length==0){
+        alert('请选择要删除的东西');
+      }else{
+        console.log("arr.length="+arr.length);
+        console.log("ids="+arr.join(","));
+
+
+        let url=`/admin/house/delete?id=${encodeURIComponent(arr.join(','))}`;
+
+        if(confirm(`您真的要删除这${arr.length}条数据吗?`)){
+          window.location=url;
+        }
+      }
+    });
+
+
+
+
+  </script>
 </html>
