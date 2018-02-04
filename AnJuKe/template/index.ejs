@@ -19,7 +19,7 @@
       </div>
       <div class="page-content">
         <div class="navbar navbar-default">
-          <form class="navbar-form navbar-left" action="index.html" method="post">
+          <form class="navbar-form navbar-left" action="?" method="get">
             <div class="form-group" style="margin-right:20px;">
               <button id="btn_add"  type="button" class="btn btn-default glyphicon glyphicon-plus">新建</button>
             </div>
@@ -27,34 +27,11 @@
               <button id="btn_del" type="button" class="btn btn-default glyphicon glyphicon-remove">删除</button>
             </div>
             <div class="form-group">
-              <input type="search" class="form-control">
-              <button type="button" class="btn btn-default">搜索</button>
+              <input type="search" class="form-control" name="key" value="<%=key%>">
+              <button class="btn btn-default" type="submit">搜索</button>
             </div>
           </form>
         </div>
-        <nav aria-label="Page navigation">
-          <ul class="pagination margin-0">
-            <li>
-              <a href="#" aria-label="Previous">
-                <span aria-hidden="true">&laquo;</span>
-              </a>
-            </li>
-            <%
-              for(let page=1;page <= page_count;page++){
-              %>
-                <% if(page==cur_page){ %>
-                  <li><a href="?page=<%=page%>">[<%=page%>]</a></li>
-                <% }else{ %>
-                  <li><a href="?page=<%=page%>"><%=page%></a></li>
-                <% } %>
-              <% } %>
-            <li>
-              <a href="#" aria-label="Next">
-                <span aria-hidden="true">&raquo;</span>
-              </a>
-            </li>
-          </ul>
-        </nav>
         <table class="table">
           <thead>
             <tr>
@@ -90,6 +67,29 @@
             <% }); %>
           </tbody>
         </table>
+        <nav aria-label="Page navigation">
+          <ul class="pagination margin-0">
+            <li>
+              <a href="#" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+            <%
+              for(let page=1;page <= page_count;page++){
+              %>
+                <% if(page==cur_page){ %>
+                  <li><a href="?page=<%=page%>">[<%=page%>]</a></li>
+                <% }else{ %>
+                  <li><a href="?page=<%=page%>&key=<%=key%>"><%=page%></a></li>
+                <% } %>
+              <% } %>
+            <li>
+              <a href="#" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
 

@@ -43,7 +43,7 @@ router.post('/login',(req,res)=>{
   if(username == config.root_username){
     if(common.md5(password) == config.root_password){
       req.session.admin_ID='1';
-      res.redirect('/admin/test');
+      res.redirect('/admin/house');
     }else{
       console.log("root user login error!");
       showError("密码错误！");
@@ -76,75 +76,143 @@ router.post('/login',(req,res)=>{
 });
 
 router.get('/house', (req, res)=>{
-  console.log("get house!");
-  req.db.query(`SELECT ID,title,ave_price,tel FROM house_table`, (err, data)=>{
+  const size=3;
+  let page=req.query.page;
+
+  if(!page){
+    page=1;
+  }else if(!/^[1-9]\d*$/.test(page)){
+    page=1;
+  }
+
+  let start=(page-1)*size;
+  console.log("start="+start+",page="+page);
+
+  let key = req.query.key;
+  console.log("key="+key);
+    //搜索
+  let like_seg='1=1';
+  if(key){
+    let keys=key.split(/\s+/g);
+
+    //['a', '禾', ...] => ["'%a%'", "'%禾%'", ...]
+    like_seg=keys.map(item=>`title LIKE '%${item}%'`).join(' OR ');
+  }
+
+  console.log("like_seg",like_seg);
+
+  req.db.query(`SELECT ID,title,ave_price,tel FROM house_table WHERE ${like_seg} LIMIT ${start},${size}`, (err, house_data)=>{
     if(err){
+      console.log("err="+err);
       res.sendStatus(500);
     }else{
-      res.render('index', {data});
+      //2.获取总数据量
+      req.db.query(`SELECT COUNT(*) AS c FROM house_table WHERE ${like_seg}`, (err, data)=>{
+        if(err){
+          res.sendStatus(500);
+        }else if(data.length==0){
+          res.sendStatus(500);
+        }else{
+          console.log('total :'+Math.ceil(data[0].c/size));
+          res.render('index', {
+            data: house_data,
+            cur_page: parseInt(page),
+            page_count: Math.ceil(data[0].c/size),
+            key:key
+          });
+        }
+      });
     }
   });
 });
 
 // add house info
-router.post('/house', (req, res)=>{
-  console.log("add house info!");
+router.post('/house/add_update', (req, res)=>{
+  let is_mod = req.body['is_mod'];
+  console.log("is_mod = "+is_mod);
+
   //a. get req params
   console.log("post body datas " + JSON.stringify(req.body));
+
   //process special data
   //process date
   req.body['sale_time']=Math.floor(new Date(req.body['sale_time']).getTime()/1000);
   req.body['submit_time']=Math.floor(new Date(req.body['submit_time']).getTime()/1000);
-  //process image, save the filename and path
-  let aImgPath=[];
-  let aImgRealPath=[];
 
-  for(let i=0;i<req.files.length;i++){
-      switch(req.files[i].fieldname){
-        case 'main_img':
-          req.body['main_img_path']=req.files[i].filename;
-          req.body['main_img_real_path']=req.files[i].path;
-          break;
-        case 'img':
-          aImgPath.push(req.files[i].filename);
-          aImgRealPath.push(req.files[i].path);
-          break;
-        case 'property_img':
-          req.body['property_img_paths']=req.files[i].filename;
-          req.body['property_img_real_paths']=req.files[i].path;
-          break;
-      }
-  }
-  req.body['ID']=common.uuid();
-  req.body['admin_ID']=req.admin_ID;
+  if(is_mod){
+    console.log("update house info!");
 
-  req.body['img_paths']=aImgPath.join(',');
-  req.body['img_real_paths']=aImgRealPath.join(',');
+    const fields=['title','sub_title','position_main','position_second','ave_price','area_min','area_max','tel','sale_time','submit_time','building_type','property_types'];
 
-  //看看
-  let arrField=[];
-  let arrValue=[];
+    let arr=[];
+    fields.forEach(key=>{
+      arr.push(`${key}='${req.body[key]}'`);
+    });
 
-  for(let name in req.body){
-    arrField.push(name);
-    arrValue.push(req.body[name]);
-  }
+    let sql=`UPDATE house_table SET ${arr.join(',')} WHERE ID='${req.body['old_id']}'`;
 
-  let insert_sql=`INSERT INTO house_table (${arrField.join(',')}) VALUES('${arrValue.join("','")}')`;
-  console.log(insert_sql);
-  req.db.query(insert_sql,(err,data)=>{
+    req.db.query(sql, err=>{
       if(err){
-        console.error("insert fail",err);
+        console.log("update err",err);
+        res.sendStatus(500);
       }else{
-        console.log("insert success!");
         res.redirect('/admin/house');
       }
-  });
+    });
+  }else{
+    console.log("add house info!");
+
+    //process image, save the filename and path
+    let aImgPath=[];
+    let aImgRealPath=[];
+
+    for(let i=0;i<req.files.length;i++){
+        switch(req.files[i].fieldname){
+          case 'main_img':
+            req.body['main_img_path']=req.files[i].filename;
+            req.body['main_img_real_path']=req.files[i].path;
+            break;
+          case 'img':
+            aImgPath.push(req.files[i].filename);
+            aImgRealPath.push(req.files[i].path);
+            break;
+          case 'property_img':
+            req.body['property_img_paths']=req.files[i].filename;
+            req.body['property_img_real_paths']=req.files[i].path;
+            break;
+        }
+    }
+    req.body['ID']=common.uuid();
+    req.body['admin_ID']=req.admin_ID;
+
+    req.body['img_paths']=aImgPath.join(',');
+    req.body['img_real_paths']=aImgRealPath.join(',');
+
+    //看看
+    let arrField=[];
+    let arrValue=[];
+
+    for(let name in req.body){
+      arrField.push(name);
+      arrValue.push(req.body[name]);
+    }
+
+    let insert_sql=`INSERT INTO house_table (${arrField.join(',')}) VALUES('${arrValue.join("','")}')`;
+    let update_sql=`UPDATE house_table`;
+    console.log(insert_sql);
+    req.db.query(insert_sql,(err,data)=>{
+        if(err){
+          console.error("insert fail",err);
+        }else{
+          console.log("insert success!");
+          res.redirect('/admin/house');
+        }
+    });
+  }
+
 });
 
-// submit_time
-
-
+// delete house info
 router.get('/house/delete',(req,res)=>{
   let ID = req.query['id'];
   console.log("ID="+ID);
@@ -250,3 +318,26 @@ router.get('/house/delete',(req,res)=>{
     }
   }
 });
+
+// get data
+router.get('/house/get_data',(req,res)=>{
+  let id = req.query.id;
+  //validate id
+  if(!id){
+    res.sendStatus(404);
+  }else if(!/^[\da-f]{32}$/.test(id)){
+    res.sendStatus(400);
+  }else{
+    req.db.query(`SELECT * FROM house_table WHERE ID='${id}'`,(err,data)=>{
+      if(err){
+        res.sendStatus(500);
+      }else{
+        if(data.length==0){
+          res.sendStatus(500,'no data');
+        }else{
+          res.send(data[0]);
+        }
+      }
+    });
+  }
+})
