@@ -23,8 +23,9 @@ server.use((req, res, next)=>{
 //普通POST数据
 server.use(bodyParse.urlencoded({extended: false}));
 
-//文件POST数据
-let multerObj=multer({dest: './upload/'});
+//文件POST数据，定义上传的临时目录
+let multerObj=multer({dest: './upload/'});  
+
 server.use(multerObj.any());
 
 //cookie
